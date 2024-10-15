@@ -1,10 +1,8 @@
 #include "webrtc.h"
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QtEndian>
-#include "json.hpp"
-// #include "sio_client.h"
-// #include "sio_message.h"
-// #include "sio_socket.h"
+#include "socketio.h"
 
 static_assert(true);
 
@@ -27,8 +25,10 @@ WebRTC::WebRTC(QObject *parent)
     m_instanceCounter++;
     qDebug() << "WebRTC instance created. Total instances:" << m_instanceCounter;
     connect(this, &WebRTC::gatheringComplited, [this](const QString &peerID) {
-        m_localDescription = descriptionToJson(
-            m_peerConnections[peerID]->localDescription().value());
+        qDebug() << "Gathering completed!";
+        auto desc = m_peerConnections[peerID]->localDescription().value();
+        m_localDescription = descriptionToJson(desc);
+        m_peerSdps.insert(peerID, desc);
         Q_EMIT localDescriptionGenerated(peerID, m_localDescription);
 
         if (isOfferer())
@@ -48,9 +48,10 @@ void WebRTC::startCall(const QString &name)
 {
     init(name, true);
     addPeer(name);
+    addAudioTrack(name, "recv audio");
     generateOfferSDP(name);
-    // sio::client client;
-    // client.connect("localhost:3030");
+    SocketIo socket(QUrl("localhost:3030"));
+    socket.connectToServer();
 }
 
 void WebRTC::endCall() {}
@@ -164,34 +165,36 @@ void WebRTC::generateAnswerSDP(const QString &peerId)
 // Add an audio track to the peer connection
 void WebRTC::addAudioTrack(const QString &peerId, const QString &trackName)
 {
-    // if (m_peerConnections.contains(peerId)) {
-    //     auto peerConnection = m_peerConnections[peerId];
+    if (m_peerConnections.contains(peerId)) {
+        auto peerConnection = m_peerConnections[peerId];
 
-    //     // Create a new audio track
-    //     auto track = std::make_shared<rtc::Track>(rtc::Description::Audio,);
+        rtc::Description::Audio media(trackName.toStdString(),
+                                      rtc::Description::Direction::RecvOnly);
 
-    //     // Add the track to the peer connection
-    //     peerConnection->addTrack(track);
-    //     m_peerTracks[peerId] = track;
+        // Add the track to the peer connection
+        auto track = peerConnection->addTrack(media);
 
-    //     qDebug() << "Audio track added to peer:" << peerId << "Track name:" << trackName;
+        m_peerTracks[peerId] = track;
 
-    //     // Handle track events: receiving messages
-    //     track->onMessage([this, peerId](rtc::message_variant message) {
-    //         auto data=readVariant(message);
-    //         emit incommingPacket(peerId, data, data.size());
-    //         qDebug() << "Audio track message received from peer:" << peerId << "of size:" << data.size();
-    //     });
+        qDebug() << "Audio track added to peer:" << peerId << "Track name:" << trackName;
 
-    //     // Handle track frame events (for example, when receiving audio frames)
-    //     track->onFrame([this](rtc::binary frame, rtc::FrameInfo info) {
-    //         qDebug() << "Audio track frame received of size:" << frame.size()
-    //                  << "Timestamp:" << info.timestamp;
-    //         // Here you could process the frame data or forward it to an audio pipeline
-    //     });
-    // } else {
-    //     qDebug() << "Peer connection not found for peerId:" << peerId;
-    // }
+        // Handle track events: receiving messages
+        track->onMessage([this, peerId](rtc::message_variant message) {
+            auto data = readVariant(message);
+            emit incommingPacket(peerId, data, data.size());
+            qDebug() << "Audio track message received from peer:" << peerId
+                     << "of size:" << data.size();
+        });
+
+        // Handle track frame events (for example, when receiving audio frames)
+        track->onFrame([this](rtc::binary frame, rtc::FrameInfo info) {
+            qDebug() << "Audio track frame received of size:" << frame.size()
+                     << "Timestamp:" << info.timestamp;
+            // Here you could process the frame data or forward it to an audio pipeline
+        });
+    } else {
+        qDebug() << "Peer connection not found for peerId:" << peerId;
+    }
 }
 
 // Sends audio track data to the peer
@@ -229,6 +232,7 @@ void WebRTC::setRemoteDescription(const QString &peerID, const QString &sdp)
                               isOfferer() ? rtc::Description::Type::Answer
                                           : rtc::Description::Type::Offer);
         m_peerConnections[peerID]->setRemoteDescription(desc);
+        m_peerSdps.insert(peerID, desc);
         qDebug() << "Remote SDP set for peer:" << peerID;
     }
 }
@@ -263,10 +267,11 @@ QByteArray WebRTC::readVariant(const rtc::message_variant &data)
 // Utility function to convert rtc::Description to JSON format
 QString WebRTC::descriptionToJson(const rtc::Description &description)
 {
-    nlohmann::json jsonObject;
-    jsonObject["sdp"] = static_cast<std::string>(description);
-    jsonObject["type"] = description.type() == rtc::Description::Type::Offer ? "offer" : "answer";
-    return QString::fromStdString(jsonObject.dump());
+    QJsonObject jsonObject;
+    jsonObject["sdp"] = QString::fromStdString(static_cast<std::string>(description));
+    jsonObject["type"] = (description.type() == rtc::Description::Type::Offer) ? "offer" : "answer";
+    QJsonDocument jsonDoc(jsonObject);
+    return jsonDoc.toJson(QJsonDocument::Compact);
 }
 
 // Retrieves the current bit rate

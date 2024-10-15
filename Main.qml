@@ -25,7 +25,7 @@ Window {
                 top: parent.top
                 left: parent.left
                 right: parent.right
-                bottom: textfield.top
+                bottom: nameField.top
                 margins: 20
             }
 
@@ -87,7 +87,7 @@ Window {
                 else{
                     Material.background = "green"
                     text = "Call"
-                    textfield.clear()
+                    nameField.clear()
                     backend.endCall()
                 }
             }

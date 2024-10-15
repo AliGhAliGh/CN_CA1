@@ -1,7 +1,7 @@
 // IMPORRTS
 const http = require("http");
 const express = require("express");
-const socketio = require("socket.io");
+const socketio = require('socket.io');
 const cors = require("cors");
 const sirv = require("sirv");
 
@@ -14,7 +14,10 @@ const TOKEN = process.env.TOKEN;
 const app = express();
 app.use(express.json(), cors());
 const server = http.createServer(app);
-const io = socketio(server, { cors: {} });
+const io = socketio(server, {
+    pingTimeout: 60000, // extend the timeout
+    pingInterval: 25000
+});
 
 // AUTHENTICATION MIDDLEWARE
 io.use((socket, next) => {
