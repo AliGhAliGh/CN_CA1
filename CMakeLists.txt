@@ -55,7 +55,7 @@ endif()
 
 add_definitions(-D_WEBSOCKETPP_CPP11_STL_)
 add_definitions(-D_WEBSOCKETPP_CPP11_FUNCTIONAL_)
-add_definitions(-DSIO_TLS)
+# add_definitions(-DSIO_TLS)
 add_definitions(-DBOOST_DATE_TIME_NO_LIB)
 add_definitions(-DBOOST_REGEX_NO_LIB)
 add_definitions(-DASIO_STANDALONE)
