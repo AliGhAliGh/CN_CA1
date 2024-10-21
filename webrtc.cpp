@@ -278,11 +278,12 @@ QByteArray WebRTC::readVariant(const rtc::message_variant &data)
 // Utility function to convert rtc::Description to JSON format
 QString WebRTC::descriptionToJson(const rtc::Description &description)
 {
-    QJsonObject jsonObject;
-    jsonObject["sdp"] = QString::fromStdString(static_cast<std::string>(description));
-    jsonObject["type"] = (description.type() == rtc::Description::Type::Offer) ? "offer" : "answer";
-    QJsonDocument jsonDoc(jsonObject);
-    return jsonDoc.toJson(QJsonDocument::Compact);
+    // QJsonObject jsonObject;
+    // jsonObject["sdp"] = QString::fromStdString(static_cast<std::string>(description));
+    // jsonObject["type"] = (description.type() == rtc::Description::Type::Offer) ? "offer" : "answer";
+    // QJsonDocument jsonDoc(jsonObject);
+    return QString::fromStdString(static_cast<std::string>(description));
+    // return jsonDoc.toJson(QJsonDocument::Compact);
 }
 
 // Retrieves the current bit rate

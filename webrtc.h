@@ -44,10 +44,6 @@ public:
     void resetBitRate();
 
 Q_SIGNALS:
-    void openedDataChannel(const QString &peerId);
-
-    void closedDataChannel(const QString &peerId);
-
     void incommingPacket(const QString &peerId, const QByteArray &data, qint64 len);
 
     void localDescriptionGenerated(const QString &peerID, const QString &sdp);

@@ -24,5 +24,5 @@ void AudioOutput::stop() {
 
 void AudioOutput::addData(const unsigned char *data, int len) {
     QMutexLocker locker(&mutex);
-    audioSink->write(reinterpret_cast<const char *>(data), len); //QAudioSink
+    // audioSink->write(reinterpret_cast<const char *>(data), len); //QAudioSink
 }
