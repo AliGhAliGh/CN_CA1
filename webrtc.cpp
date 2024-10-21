@@ -2,7 +2,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QtEndian>
-#include "socket.io-client-cpp/src/sio_client.h"
+#include "signalmanager.h"
 
 static_assert(true);
 
@@ -21,6 +21,7 @@ struct RtpHeader
 WebRTC::WebRTC(QObject *parent)
     : QObject{parent}
     , m_audio("Audio")
+    , m_signaller(new SignalManager(this))
 {
     m_instanceCounter++;
     qDebug() << "WebRTC instance created. Total instances:" << m_instanceCounter;
@@ -44,30 +45,25 @@ WebRTC::~WebRTC()
     qDebug() << "WebRTC instance destroyed. Remaining instances:" << m_instanceCounter;
 }
 
-void WebRTC::startCall(const QString &name)
+/**
+ * ====================================================
+ * ================= Invokable methods ===================
+ * ====================================================
+ */
+
+void WebRTC::startCall(const QString &targetName)
 {
-    // init(name, true);
-    // addPeer(name);
-    // addAudioTrack(name, "recv audio");
-    // generateOfferSDP(name);
-    // sio::client client;
-    // client.connect("http://127.0.0.1:3030");
-    // client.socket()->on("connect", [](sio::event event) {
-    //     qDebug() << "connect: " << event.get_message()->get_string();
-    // });
-    // client.socket()->on("disconnect", [](sio::event event) {
-    //     qDebug() << "disconnect: " << event.get_message()->get_string();
-    // });
-    // client.socket()->on("connect_error", [](sio::event event) {
-    //     qDebug() << "connect_error" << event.get_message()->get_string();
-    // });
-    // client.socket()->on("message", [](sio::event event) {
-    //     qDebug() << "message" << event.get_message()->get_string();
-    // });
-    // client.socket()->on("uniquenessError", [](sio::event event) {
-    //     qDebug() << "uniquenessError" << event.get_message()->get_string();
-    // });
-    // client.socket()->emit("ready");
+    setIsOfferer(true);
+    addPeer(targetName);
+    addAudioTrack(targetName, "recv audio");
+    generateOfferSDP(targetName);
+}
+
+void WebRTC::registerName(const QString &username)
+{
+    init(username, false);
+    addPeer(username);
+    m_signaller->connectToSignalingServer(username.toStdString());
 }
 
 void WebRTC::endCall() {}
@@ -102,7 +98,6 @@ void WebRTC::addPeer(const QString &peerId)
 
     // Set up a callback for when the local description is generated
     newPeer->onLocalDescription([this, peerId](const rtc::Description &description) {
-        // The local description should be Q_EMITted using the appropriate signals based on the peer's role (offerer or answerer)
         QString jsonDesc = descriptionToJson(description);
         Q_EMIT localDescriptionGenerated(peerId, jsonDesc);
         // m_localDescription = QString::fromStdString(std::string(description));
@@ -243,14 +238,14 @@ void WebRTC::sendTrack(const QString &peerId, const QByteArray &buffer)
 // Set the remote SDP description for the peer that contains metadata about the media being transmitted
 void WebRTC::setRemoteDescription(const QString &peerID, const QString &sdp)
 {
-    if (m_peerConnections.contains(peerID)) {
-        rtc::Description desc(sdp.toStdString(),
-                              isOfferer() ? rtc::Description::Type::Answer
-                                          : rtc::Description::Type::Offer);
-        m_peerConnections[peerID]->setRemoteDescription(desc);
-        m_peerSdps.insert(peerID, desc);
-        qDebug() << "Remote SDP set for peer:" << peerID;
-    }
+    if (!m_peerConnections.contains(peerID))
+        addPeer(peerID);
+    rtc::Description desc(sdp.toStdString(),
+                          isOfferer() ? rtc::Description::Type::Answer
+                                      : rtc::Description::Type::Offer);
+    m_peerConnections[peerID]->setRemoteDescription(desc);
+    m_peerSdps.insert(peerID, desc);
+    qDebug() << "Remote SDP set for peer:" << peerID;
 }
 
 // Add remote ICE candidates to the peer connection

@@ -30,6 +30,7 @@ qt_add_qml_module(P2PVoiceCall
         SOURCES audioinput.cpp audioinput.h
         SOURCES socket.io-client-cpp/src/sio_client.cpp socket.io-client-cpp/src/sio_client.h socket.io-client-cpp/src/sio_message.h socket.io-client-cpp/src/sio_socket.cpp socket.io-client-cpp/src/sio_socket.h
         SOURCES socket.io-client-cpp/src/internal/sio_client_impl.cpp socket.io-client-cpp/src/internal/sio_client_impl.h socket.io-client-cpp/src/internal/sio_packet.cpp socket.io-client-cpp/src/internal/sio_packet.h
+        SOURCES signalmanager.h signalmanager.cpp
         # SOURCES socket.io-client-cpp11-non-boost/src/sio_client.cpp socket.io-client-cpp11-non-boost/src/sio_client.h socket.io-client-cpp11-non-boost/src/sio_message.h socket.io-client-cpp11-non-boost/src/sio_socket.cpp socket.io-client-cpp11-non-boost/src/sio_socket.h
         # SOURCES socket.io-client-cpp11-non-boost/src/internal/sio_client_impl.cpp socket.io-client-cpp11-non-boost/src/internal/sio_client_impl.h socket.io-client-cpp11-non-boost/src/internal/sio_packet.cpp socket.io-client-cpp11-non-boost/src/internal/sio_packet.h
 )
