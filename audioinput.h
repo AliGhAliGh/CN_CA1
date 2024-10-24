@@ -1,35 +1,114 @@
-#ifndef AUDIOINPUT_H
-#define AUDIOINPUT_H
+#ifndef AUDIO_H
+#define AUDIO_H
+
+#include <QObject>
 #include <QAudioSource>
-#include <QIODevice>
-#include <opus.h>
+#include <QMediaDevices>
+#include <QComboBox>
+#include <QPushButton>
+#include <QSlider>
+#include <QWidget>
+#include <QPixmap>
+#include <QByteArray>
+#include <QScopedPointer>
+#include <iostream>
+#include "audiooutput.h"
+#include "webrtc.h"
 
-class WebRTC;
+class AudioInfo : public QIODevice
+{
+    Q_OBJECT // اضافه کردن Q_OBJECT برای استفاده از سیگنال‌ها و اسلات‌ها
 
-class AudioInput : public QIODevice {
+        public : AudioInfo(const QAudioFormat &format);
+
+    void start();
+    void stop();
+
+    qreal level() const { return m_level; }
+
+    qint64 readData(char *data, qint64 maxlen) override;
+    qint64 writeData(const char *data, qint64 len) override;
+
+    qreal calculateLevel(const char *data, qint64 len) const;
+
+Q_SIGNALS:
+    void levelChanged(qreal level); // سیگنال برای تغییر سطح صوتی
+
+private:
+    const QAudioFormat m_format;
+    qreal m_level = 0.0; // 0.0 <= m_level <= 1.0
+};
+
+class RenderArea : public QWidget
+{
     Q_OBJECT
 
 public:
-    AudioInput(WebRTC *webRtc, QObject *parent = nullptr);
+    explicit RenderArea(QWidget *parent = nullptr);
 
-    ~AudioInput() {
-        if (opusEncoder) {
-            opus_encoder_destroy(opusEncoder);
-        }
-    }
+    void setLevel(qreal value);
 
-    bool open(OpenMode mode) override;
-    void close() override;
-
-    qint64 writeData(const char *data, qint64 len) override;
-    qint64 readData(char *data, qint64 maxlen) override;
+protected:
+    void paintEvent(QPaintEvent *event) override;
 
 Q_SIGNALS:
     void dataReady(const QByteArray &data);
 
 private:
-    QAudioSource *audioSource;
-    OpusEncoder *opusEncoder;
+    qreal m_level = 0;
 };
 
-#endif // AUDIOINPUT_H
+class InputTest : public QWidget
+{
+    Q_OBJECT
+
+public:
+    InputTest();
+    ~InputTest()
+    {
+        if (web1)
+            web1->close();
+        if (web2)
+            web2->close();
+    }
+
+private:
+    void initializeWindow();
+    void initializeAudio(const QAudioDevice &deviceInfo);
+    void initializeErrorWindow();
+
+public Q_SLOTS:
+    void init();
+    void toggleMode();
+    void toggleSuspend();
+    void deviceChanged(int index);
+    void deviceOutputChanged(int index);
+    void sliderChanged(int value);
+    void toggleSpeaker();
+    void chooseCallMode1();
+    void chooseCallMode2();
+
+private:
+    // Owned by layout
+    RenderArea *m_canvas = nullptr;
+    QPushButton *m_modeButton = nullptr;
+    QPushButton *m_suspendResumeButton = nullptr;
+    QPushButton *m_muteSpeakerButton = nullptr;
+    QComboBox *m_deviceBox = nullptr;
+    QComboBox *m_deviceBox2 = nullptr;
+    QSlider *m_volumeSlider = nullptr;
+    QPushButton *m_modeCallButton1 = nullptr;
+    QPushButton *m_modeCallButton2 = nullptr;
+    QLineEdit *inputIp;
+    WebRTCClientAnswerer *web1 = nullptr;
+    WebRTCClientOferrer *web2 = nullptr;
+    AudioOut *m_audioOutput;
+    QMediaDevices *m_devices = nullptr;
+    QScopedPointer<AudioInfo> m_audioInfo;
+    QScopedPointer<QAudioSource> m_audioInput;
+    bool m_pullMode = true;
+    bool is_mutespeaker = true;
+    int call_mode = 0;
+};
+
+#endif // AUDIO_H
