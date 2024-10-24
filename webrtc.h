@@ -18,7 +18,9 @@ public:
 
     Q_INVOKABLE void startCall(const QString &name);
     Q_INVOKABLE void registerName(const QString &username);
-    Q_INVOKABLE void endCall();
+    Q_INVOKABLE void endCall(const QString &endCall);
+    Q_INVOKABLE void acceptCall(const QString &name);
+    Q_INVOKABLE void rejectCall(const QString &name);
 
     void init(const QString &id, bool isOfferer = false);
     void addPeer(const QString &peerId);
@@ -46,6 +48,22 @@ public:
 Q_SIGNALS:
     void incommingPacket(const QString &peerId, const QByteArray &data, qint64 len);
 
+    void incommigCall(const QString &username);
+
+    void endCallClicked(const QString &name);
+
+    void callRejected(const QString &peerID);
+
+    void offerIsReady(const QString &peerID, const QString &description);
+
+    void answerIsReady(const QString &peerID, const QString &description);
+
+    void acceptedReceived();
+
+    void rejectReceived();
+
+    void endReceived();
+
     void localDescriptionGenerated(const QString &peerID, const QString &sdp);
 
     void localCandidateGenerated(const QString &peerID,
@@ -56,10 +74,6 @@ Q_SIGNALS:
 
     void gatheringComplited(const QString &peerID);
 
-    void offerIsReady(const QString &peerID, const QString &description);
-
-    void answerIsReady(const QString &peerID, const QString &description);
-
     void ssrcChanged();
 
     void payloadTypeChanged();
@@ -67,11 +81,16 @@ Q_SIGNALS:
     void bitRateChanged();
 
 public Q_SLOTS:
-    void setRemoteDescription(const QString &peerID, const QString &sdp);
+    void offerReceived(const QString &peerID, const QString &sdp);
+
+    void answerReceived(const QString &peerID, const QString &sdp);
+
+    void rejectedReceived(const QString &peerID);
 
     void setRemoteCandidate(const QString &peerID, const QString &candidate, const QString &sdpMid);
 
 private:
+    void acceptPeer(const rtc::Description &desc, const QString &peerId);
     QByteArray readVariant(const rtc::message_variant &data);
     QString descriptionToJson(const rtc::Description &description);
 
@@ -95,7 +114,7 @@ private:
     bool m_isOfferer = false;
     QString m_localId;
     rtc::Configuration m_config;
-    QMap<QString, rtc::Description> m_peerSdps;
+    QMap<QString, QString> m_peerSdps;
     QMap<QString, std::shared_ptr<rtc::PeerConnection>> m_peerConnections;
     QMap<QString, std::shared_ptr<rtc::Track>> m_peerTracks;
     QString m_localDescription;
