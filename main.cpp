@@ -7,8 +7,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
     qmlRegisterType<WebRTC>("WebRtc", 1, 0, "WebRtc");
-    //const QUrl url(QStringLiteral("qrc:/qml/Main.qml"));
-    const QUrl url(QStringLiteral());
+    const QUrl url(QStringLiteral("qrc:/qml/Main.qml"));
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreated,
@@ -18,6 +17,6 @@ int main(int argc, char *argv[])
                 QCoreApplication::exit(-1);
         },
         Qt::QueuedConnection);
-    engine.load("C:/Users/AliGH/Desktop/CN/CA1/qml/Main.qml");
+    engine.load("../../qml/Main.qml");
     return app.exec();
 }

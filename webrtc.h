@@ -7,6 +7,8 @@
 #include <rtc/rtc.hpp>
 
 class SignalManager;
+class AudioInput;
+class AudioOutput;
 
 class WebRTC : public QObject
 {
@@ -87,6 +89,10 @@ public Q_SLOTS:
 
     void setRemoteCandidate(const QString &peerID, const QString &candidate, const QString &sdpMid);
 
+    void dataReady(const QByteArray &data);
+
+    void connectionReady();
+
 private:
     void acceptPeer(const rtc::Description &desc, const QString &peerId);
     void endConnection();
@@ -109,13 +115,15 @@ private:
     int m_payloadType = 111;
     rtc::Description::Audio m_audio;
     SignalManager *m_signaller;
+    AudioInput *m_audioInput;
+    AudioOutput *m_audioOutput;
     rtc::SSRC m_ssrc = 2;
     bool m_isOfferer = false;
     QString m_localId;
     rtc::Configuration m_config;
     QMap<QString, QString> m_peerSdps;
     QMap<QString, std::shared_ptr<rtc::PeerConnection>> m_peerConnections;
-    QMap<QString, std::shared_ptr<rtc::Track>> m_peerTracks;
+    std::shared_ptr<rtc::Track> m_peerTrack;
     QString m_localDescription;
     QString m_remoteDescription;
 
