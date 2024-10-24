@@ -1,5 +1,7 @@
 #include "webrtc.h"
+#include <QIODevice>
 #include <QtEndian>
+#include "audioinput.h"
 #include "signalmanager.h"
 
 static_assert(true);
@@ -20,6 +22,7 @@ WebRTC::WebRTC(QObject *parent)
     : QObject{parent}
     , m_audio("Audio")
     , m_signaller(new SignalManager(this))
+    , m_audioInput(new AudioInput(this))
 {
     m_instanceCounter++;
     qDebug() << "WebRTC instance created. Total instances:" << m_instanceCounter;
@@ -92,7 +95,6 @@ void WebRTC::init(const QString &id)
     rtc::InitLogger(rtc::LogLevel::Warning);
     m_localId = id;
     m_isOfferer = false;
-    m_config = rtc::Configuration();
     m_config.iceServers.emplace_back("stun.l.google.com:19302");
     qDebug() << "WebRTC initialized for id:" << m_localId;
     // m_config.iceServers.emplace_back("turn:turnserver.example.com:3478", "username", "password");
@@ -114,9 +116,11 @@ void WebRTC::addPeer(const QString &peerId)
     newPeer->onStateChange([this, peerId](rtc::PeerConnection::State state) {
         auto res = static_cast<int>(state);
         qDebug() << "PeerConnection state changed:" << res;
-        if (res == 5) {
+        if (res == 2)
+            QMetaObject::invokeMethod(this, "connectionReady", Qt::QueuedConnection);
+
+        if (res == 5)
             endConnection();
-        }
     });
     newPeer->onGatheringStateChange([this, peerId](rtc::PeerConnection::GatheringState state) {
         if (state == rtc::PeerConnection::GatheringState::Complete) {
@@ -124,14 +128,6 @@ void WebRTC::addPeer(const QString &peerId)
             Q_EMIT gatheringComplited(peerId);
         }
     });
-    // newPeer->onTrack([this, peerId](std::shared_ptr<rtc::Track> track) {
-    //     qDebug() << "Track received from peer:" << peerId;
-    //     track->onMessage([this, peerId](rtc::message_variant message) {
-    //         auto data = readVariant(message);
-    //         Q_EMIT incommingPacket(peerId, data, data.size());
-    //     });
-    //     qDebug() << "Listening for track messages from peer:" << peerId;
-    // });
     m_peerConnections[peerId] = newPeer;
     qDebug() << "Peer added with id:" << peerId;
 }
@@ -159,7 +155,7 @@ void WebRTC::addAudioTrack(const QString &peerId, const QString &trackName)
         rtc::Description::Audio media(trackName.toStdString(),
                                       rtc::Description::Direction::RecvOnly);
         auto track = peerConnection->addTrack(media);
-        m_peerTracks[peerId] = track;
+        m_peerTrack = track;
         qDebug() << "Audio track added to peer:" << peerId << "Track name:" << trackName;
         track->onMessage([this, peerId](rtc::message_variant message) {
             auto data = readVariant(message);
@@ -230,6 +226,13 @@ void WebRTC::setRemoteCandidate(const QString &peerID,
     qDebug() << "Remote ICE candidate added for peer:" << peerID;
 }
 
+void WebRTC::dataReady(const QByteArray &data)
+{
+    qDebug() << "send";
+    m_peerTrack->send(reinterpret_cast<const std::byte *>(data.data()),
+                      data.size() / sizeof(std::byte));
+}
+
 /*
  * ====================================================
  * ================= private methods ==================
@@ -246,11 +249,13 @@ void WebRTC::acceptPeer(const rtc::Description &desc, const QString &peerId)
 
 void WebRTC::endConnection()
 {
-    // m_peerConnections.clear();
     m_peerSdps.clear();
-    m_peerTracks.clear();
-    // addPeer(m_localId);
     Q_EMIT endReceived();
+}
+
+void WebRTC::connectionReady()
+{
+    m_audioInput->open(QIODevice::ReadOnly);
 }
 
 QByteArray WebRTC::readVariant(const rtc::message_variant &data)

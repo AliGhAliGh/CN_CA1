@@ -18,7 +18,7 @@
 #include <math.h>
 #include <stdlib.h>
 int debug_number = 0;
-AudioInfo::AudioInfo(const QAudioFormat &format) : m_format(format) { }
+AudioInfo::AudioInfo(const QAudioFormat &format) : m_format(format) {}
 
 void AudioInfo::start()
 {
@@ -44,8 +44,10 @@ qreal AudioInfo::calculateLevel(const char *data, qint64 len) const
     float maxValue = 0;
     auto *ptr = reinterpret_cast<const unsigned char *>(data);
 
-    for (int i = 0; i < numSamples; ++i) {
-        for (int j = 0; j < m_format.channelCount(); ++j) {
+    for (int i = 0; i < numSamples; ++i)
+    {
+        for (int j = 0; j < m_format.channelCount(); ++j)
+        {
             float value = m_format.normalizedSampleValue(ptr);
 
             maxValue = qMax(value, maxValue);
@@ -91,7 +93,7 @@ void RenderArea::paintEvent(QPaintEvent * /* event */)
 void RenderArea::setLevel(qreal value)
 {
     m_level = value;
-    //std::cout << debug_number++ << std::endl;
+    // std::cout << debug_number++ << std::endl;
     update();
 }
 
@@ -104,7 +106,6 @@ void InputTest::initializeWindow()
 {
     QWidget *parentWidget = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout(parentWidget);
-
 
     m_modeCallButton1 = new QPushButton();
     connect(m_modeCallButton1, &QPushButton::clicked, this, &InputTest::chooseCallMode1);
@@ -124,7 +125,8 @@ void InputTest::initializeWindow()
     m_deviceBox = new QComboBox();
     const QAudioDevice &defaultDeviceInfo = QMediaDevices::defaultAudioInput();
     m_deviceBox->addItem(defaultDeviceInfo.description(), QVariant::fromValue(defaultDeviceInfo));
-    for (auto &deviceInfo : m_devices->audioInputs()) {
+    for (auto &deviceInfo : m_devices->audioInputs())
+    {
         if (deviceInfo != defaultDeviceInfo)
             m_deviceBox->addItem(deviceInfo.description(), QVariant::fromValue(deviceInfo));
     }
@@ -135,7 +137,8 @@ void InputTest::initializeWindow()
     m_deviceBox2 = new QComboBox();
     const QAudioDevice &defaultDeviceInfo2 = m_devices->defaultAudioOutput();
     m_deviceBox2->addItem(defaultDeviceInfo2.description(), QVariant::fromValue(defaultDeviceInfo2));
-    for (auto &deviceInfo : m_devices->audioOutputs()) {
+    for (auto &deviceInfo : m_devices->audioOutputs())
+    {
         if (deviceInfo != defaultDeviceInfo2)
             m_deviceBox2->addItem(deviceInfo.description(), QVariant::fromValue(deviceInfo));
     }
@@ -195,7 +198,8 @@ void InputTest::init()
 {
 #if QT_CONFIG(permissions)
     QMicrophonePermission microphonePermission;
-    switch (qApp->checkPermission(microphonePermission)) {
+    switch (qApp->checkPermission(microphonePermission))
+    {
     case Qt::PermissionStatus::Undetermined:
         qApp->requestPermission(microphonePermission, this, &InputTest::init);
         return;
@@ -210,7 +214,7 @@ void InputTest::init()
     initializeWindow();
     initializeAudio(QMediaDevices::defaultAudioInput());
 }
-int h=0;
+int h = 0;
 
 void InputTest::toggleMode()
 {
@@ -218,17 +222,21 @@ void InputTest::toggleMode()
     toggleSuspend();
 
     // Change between pull and push modes
-    if (m_pullMode) {
+    if (m_pullMode)
+    {
         m_modeButton->setText(tr("unmute mic"));
         std::cout << "AAAAA" << std::endl;
         m_audioInput->start(m_audioInfo.data());
-    } else {
+    }
+    else
+    {
         m_modeButton->setText(tr("mut mic"));
         auto *io = m_audioInput->start();
         if (!io)
             return;
 
-        connect(io, &QIODevice::readyRead, [this, io]() {
+        connect(io, &QIODevice::readyRead, [this, io]()
+                {
             static const qint64 BufferSize = 4096;
             const qint64 len = qMin(m_audioInput->bytesAvailable(), BufferSize);
 
@@ -246,8 +254,7 @@ void InputTest::toggleMode()
                 }
                 //std::cout << "yes " << level << std::endl;
                 m_canvas->setLevel(level);
-            }
-        });
+            } });
     }
 
     m_pullMode = !m_pullMode;
@@ -256,7 +263,8 @@ void InputTest::toggleMode()
 void InputTest::toggleSuspend()
 {
     // toggle suspend/resume
-    switch (m_audioInput->state()) {
+    switch (m_audioInput->state())
+    {
     case QAudio::SuspendedState:
     case QAudio::StoppedState:
         m_audioInput->resume();
@@ -274,12 +282,14 @@ void InputTest::toggleSuspend()
 
 void InputTest::toggleSpeaker()
 {
-    //std::cout << "tog spleak" << std::endl;
-    if(is_mutespeaker){
+    // std::cout << "tog spleak" << std::endl;
+    if (is_mutespeaker)
+    {
         m_audioOutput->start();
         m_muteSpeakerButton->setText(tr("mute Speaker"));
     }
-    else{
+    else
+    {
         m_audioOutput->stop();
         m_muteSpeakerButton->setText(tr("unmute Speaker"));
     }
@@ -299,10 +309,10 @@ void InputTest::deviceChanged(int index)
 void InputTest::deviceOutputChanged(int index)
 {
 
-        //std::cout << "yes" << std::endl;
-        // m_audioOutput->stop();
-        // m_audioOutput->disconnect(this);
-        // initializeAudio(m_deviceBox->itemData(index).value<QAudioDevice>());
+    // std::cout << "yes" << std::endl;
+    //  m_audioOutput->stop();
+    //  m_audioOutput->disconnect(this);
+    //  initializeAudio(m_deviceBox->itemData(index).value<QAudioDevice>());
 }
 
 void InputTest::sliderChanged(int value)
@@ -313,8 +323,10 @@ void InputTest::sliderChanged(int value)
     m_audioInput->setVolume(linearVolume);
 }
 
-void InputTest::chooseCallMode1(){
-    if(call_mode == 0){
+void InputTest::chooseCallMode1()
+{
+    if (call_mode == 0)
+    {
         auto p = inputIp->text().toStdString();
         call_mode = 1;
         web1 = new WebRTCClientAnswerer(p);
@@ -323,8 +335,10 @@ void InputTest::chooseCallMode1(){
     }
 }
 
-void InputTest::chooseCallMode2(){
-    if(call_mode == 0){
+void InputTest::chooseCallMode2()
+{
+    if (call_mode == 0)
+    {
         std::cout << "set wait call" << std::endl;
         auto p = inputIp->text().toStdString();
         call_mode = 2;
@@ -333,4 +347,3 @@ void InputTest::chooseCallMode2(){
         web2->start();
     }
 }
-

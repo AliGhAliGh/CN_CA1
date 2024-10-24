@@ -15,11 +15,11 @@
 #include "audiooutput.h"
 #include "webrtc.h"
 
-class AudioInfo : public QIODevice {
-    Q_OBJECT  // اضافه کردن Q_OBJECT برای استفاده از سیگنال‌ها و اسلات‌ها
+class AudioInfo : public QIODevice
+{
+    Q_OBJECT // اضافه کردن Q_OBJECT برای استفاده از سیگنال‌ها و اسلات‌ها
 
-public:
-    AudioInfo(const QAudioFormat &format);
+        public : AudioInfo(const QAudioFormat &format);
 
     void start();
     void stop();
@@ -32,14 +32,15 @@ public:
     qreal calculateLevel(const char *data, qint64 len) const;
 
 Q_SIGNALS:
-    void levelChanged(qreal level);  // سیگنال برای تغییر سطح صوتی
+    void levelChanged(qreal level); // سیگنال برای تغییر سطح صوتی
 
 private:
     const QAudioFormat m_format;
     qreal m_level = 0.0; // 0.0 <= m_level <= 1.0
 };
 
-class RenderArea : public QWidget {
+class RenderArea : public QWidget
+{
     Q_OBJECT
 
 public:
@@ -50,18 +51,25 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override;
 
+Q_SIGNALS:
+    void dataReady(const QByteArray &data);
+
 private:
     qreal m_level = 0;
 };
 
-class InputTest : public QWidget {
+class InputTest : public QWidget
+{
     Q_OBJECT
 
 public:
     InputTest();
-    ~InputTest() {
-        if (web1) web1->close();
-        if (web2) web2->close();
+    ~InputTest()
+    {
+        if (web1)
+            web1->close();
+        if (web2)
+            web2->close();
     }
 
 private:
