@@ -22,7 +22,7 @@ public:
     Q_INVOKABLE void acceptCall(const QString &name);
     Q_INVOKABLE void rejectCall(const QString &name);
 
-    void init(const QString &id, bool isOfferer = false);
+    void init(const QString &id);
     void addPeer(const QString &peerId);
     void generateOfferSDP(const QString &peerId);
     void generateAnswerSDP(const QString &peerId);
@@ -49,8 +49,6 @@ Q_SIGNALS:
     void incommingPacket(const QString &peerId, const QByteArray &data, qint64 len);
 
     void incommigCall(const QString &username);
-
-    void endCallClicked(const QString &name);
 
     void callRejected(const QString &peerID);
 
@@ -91,6 +89,7 @@ public Q_SLOTS:
 
 private:
     void acceptPeer(const rtc::Description &desc, const QString &peerId);
+    void endConnection();
     QByteArray readVariant(const rtc::message_variant &data);
     QString descriptionToJson(const rtc::Description &description);
 

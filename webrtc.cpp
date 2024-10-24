@@ -58,7 +58,7 @@ void WebRTC::startCall(const QString &targetName)
 
 void WebRTC::registerName(const QString &username)
 {
-    init(username, false);
+    init(username);
     addPeer(username);
     m_signaller->connectToSignalingServer(username.toStdString());
 }
@@ -66,7 +66,6 @@ void WebRTC::registerName(const QString &username)
 void WebRTC::endCall(const QString &name)
 {
     m_peerConnections[name]->close();
-    // Q_EMIT endCallClicked(name);
 }
 
 void WebRTC::acceptCall(const QString &name)
@@ -74,7 +73,6 @@ void WebRTC::acceptCall(const QString &name)
     if (!m_peerSdps.contains(name))
         return;
     rtc::Description desc(m_peerSdps[name].toStdString(), rtc::Description::Type::Offer);
-    qDebug() << m_peerSdps[name].toStdString();
     acceptPeer(desc, name);
 }
 
@@ -89,14 +87,14 @@ void WebRTC::rejectCall(const QString &name)
  * ====================================================
  */
 
-void WebRTC::init(const QString &id, bool isOfferer)
+void WebRTC::init(const QString &id)
 {
-    rtc::InitLogger(rtc::LogLevel::Debug);
+    rtc::InitLogger(rtc::LogLevel::Warning);
     m_localId = id;
-    m_isOfferer = isOfferer;
+    m_isOfferer = false;
     m_config = rtc::Configuration();
     m_config.iceServers.emplace_back("stun.l.google.com:19302");
-    qDebug() << "WebRTC initialized for id:" << m_localId << "as offerer:" << isOfferer;
+    qDebug() << "WebRTC initialized for id:" << m_localId;
     // m_config.iceServers.emplace_back("turn:turnserver.example.com:3478", "username", "password");
     // Add a TURN server for relaying media if a direct connection can't be established
 }
@@ -117,7 +115,7 @@ void WebRTC::addPeer(const QString &peerId)
         auto res = static_cast<int>(state);
         qDebug() << "PeerConnection state changed:" << res;
         if (res == 5) {
-            Q_EMIT endReceived();
+            endConnection();
         }
     });
     newPeer->onGatheringStateChange([this, peerId](rtc::PeerConnection::GatheringState state) {
@@ -203,6 +201,7 @@ void WebRTC::sendTrack(const QString &peerId, const QByteArray &buffer)
 void WebRTC::offerReceived(const QString &peerID, const QString &sdp)
 {
     m_peerSdps.insert(peerID, sdp);
+    setIsOfferer(false);
     Q_EMIT incommigCall(peerID);
 }
 
@@ -239,10 +238,19 @@ void WebRTC::setRemoteCandidate(const QString &peerID,
 
 void WebRTC::acceptPeer(const rtc::Description &desc, const QString &peerId)
 {
-    if (!m_peerConnections.contains(peerId))
+    if (!m_peerConnections.contains(peerId) || !isOfferer())
         addPeer(peerId);
     m_peerConnections[peerId]->setRemoteDescription(desc);
     qDebug() << "Remote SDP set for peer:" << peerId;
+}
+
+void WebRTC::endConnection()
+{
+    // m_peerConnections.clear();
+    m_peerSdps.clear();
+    m_peerTracks.clear();
+    // addPeer(m_localId);
+    Q_EMIT endReceived();
 }
 
 QByteArray WebRTC::readVariant(const rtc::message_variant &data)
