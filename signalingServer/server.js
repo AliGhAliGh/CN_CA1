@@ -48,6 +48,16 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('reject', peerId => {
+        const targetSocketId = peerIds[peerId];
+        const fromPeerName = peerNames[socket.id];
+
+        if (targetSocketId) {
+            console.log(`Sending reject from ${fromPeerName} to peer: ${peerId}`);
+            io.to(targetSocketId).emit('reject', { from: fromPeerName });
+        }
+    });
+
     socket.on('ice-candidate', (peerId, candidate) => {
         const targetSocketId = peerIds[peerId];
         const fromPeerName = peerNames[socket.id];
@@ -60,6 +70,7 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.id}`);
+
         delete peerNames[socket.id];
         for (const peerId in peerIds) {
             if (peerIds[peerId] === socket.id) {

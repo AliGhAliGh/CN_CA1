@@ -33,6 +33,17 @@ qt_add_executable(P2PVoiceCall
     signalmanager.cpp
 )
 
+qt_add_qml_module(P2PVoiceCall
+    URI P2PVoiceCall
+    VERSION 1.0
+    SOURCES webrtc.cpp webrtc.h
+    SOURCES audioinput.cpp audioinput.h audiooutput.cpp audiooutput.h
+    SOURCES socket.io-client-cpp/src/sio_client.cpp socket.io-client-cpp/src/sio_client.h socket.io-client-cpp/src/sio_message.h socket.io-client-cpp/src/sio_socket.cpp socket.io-client-cpp/src/sio_socket.h
+    SOURCES socket.io-client-cpp/src/internal/sio_client_impl.cpp socket.io-client-cpp/src/internal/sio_client_impl.h socket.io-client-cpp/src/internal/sio_packet.cpp socket.io-client-cpp/src/internal/sio_packet.h
+    SOURCES signalmanager.h signalmanager.cpp
+    RESOURCES resources.qrc
+)
+# >>>>>>> 13201c75b07ed9a37cb21ea5acfe0c999e9c6c98
 set_target_properties(P2PVoiceCall PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}

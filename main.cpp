@@ -1,25 +1,23 @@
 #include <QGuiApplication>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QQmlApplicationEngine>
-#include <QQmlComponent>
+#include <QQmlContext>
 #include "webrtc.h"
-
 int main(int argc, char *argv[])
 {
-    qputenv("QT_IM_MODULE", QByteArray("qtvirtualkeyboard"));
-
     QGuiApplication app(argc, argv);
-
-    qmlRegisterType<WebRTC>("WebRtc", 1, 0, "WebRtc");
-
     QQmlApplicationEngine engine;
+    qmlRegisterType<WebRTC>("WebRtc", 1, 0, "WebRtc");
+    //const QUrl url(QStringLiteral("qrc:/qml/Main.qml"));
+    const QUrl url(QStringLiteral());
     QObject::connect(
         &engine,
-        &QQmlApplicationEngine::objectCreationFailed,
+        &QQmlApplicationEngine::objectCreated,
         &app,
-        []() { QCoreApplication::exit(-1); },
+        [url](QObject *obj, const QUrl &objUrl) {
+            if (!obj && url == objUrl)
+                QCoreApplication::exit(-1);
+        },
         Qt::QueuedConnection);
-    engine.loadFromModule("CA1", "Main");
+    engine.load("C:/Users/AliGH/Desktop/CN/CA1/qml/Main.qml");
     return app.exec();
 }
