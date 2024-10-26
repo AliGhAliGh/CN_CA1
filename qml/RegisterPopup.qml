@@ -8,6 +8,7 @@ Popup {
     y: 0
     width: parent.width
     modal: true
+    closePolicy: Popup.NoAutoClose
 
     ColumnLayout {
         spacing: 10

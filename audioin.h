@@ -1,25 +1,24 @@
 #ifndef AUDIO_H
 #define AUDIO_H
 
-#include <QObject>
 #include <QAudioSource>
-#include <QMediaDevices>
+#include <QByteArray>
 #include <QComboBox>
+#include <QMediaDevices>
+#include <QObject>
+#include <QPixmap>
 #include <QPushButton>
+#include <QScopedPointer>
 #include <QSlider>
 #include <QWidget>
-#include <QPixmap>
-#include <QByteArray>
-#include <QScopedPointer>
-#include <iostream>
 #include "audiooutput.h"
-#include "webrtc.h"
 
 class AudioInfo : public QIODevice
 {
-    Q_OBJECT // اضافه کردن Q_OBJECT برای استفاده از سیگنال‌ها و اسلات‌ها
+    Q_OBJECT
 
-        public : AudioInfo(const QAudioFormat &format);
+public:
+    AudioInfo(const QAudioFormat &format);
 
     void start();
     void stop();
@@ -32,11 +31,11 @@ class AudioInfo : public QIODevice
     qreal calculateLevel(const char *data, qint64 len) const;
 
 Q_SIGNALS:
-    void levelChanged(qreal level); // سیگنال برای تغییر سطح صوتی
+    void levelChanged(qreal level);
 
 private:
     const QAudioFormat m_format;
-    qreal m_level = 0.0; // 0.0 <= m_level <= 1.0
+    qreal m_level = 0.0;
 };
 
 class RenderArea : public QWidget
@@ -64,13 +63,7 @@ class InputTest : public QWidget
 
 public:
     InputTest();
-    ~InputTest()
-    {
-        if (web1)
-            web1->close();
-        if (web2)
-            web2->close();
-    }
+    ~InputTest() {}
 
 private:
     void initializeWindow();

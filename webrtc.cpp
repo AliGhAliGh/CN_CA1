@@ -1,7 +1,7 @@
 #include "webrtc.h"
 #include <QIODevice>
 #include <QtEndian>
-#include "audioinput.h"
+// #include "audioin.h"
 #include "signalmanager.h"
 
 static_assert(true);
@@ -22,7 +22,7 @@ WebRTC::WebRTC(QObject *parent)
     : QObject{parent}
     , m_audio("Audio")
     , m_signaller(new SignalManager(this))
-    , m_audioInput(new AudioInput(this))
+// , m_audioInput(new AudioInput(this))
 {
     m_instanceCounter++;
     qDebug() << "WebRTC instance created. Total instances:" << m_instanceCounter;
@@ -255,7 +255,7 @@ void WebRTC::endConnection()
 
 void WebRTC::connectionReady()
 {
-    m_audioInput->open(QIODevice::ReadOnly);
+    // m_audioInput->open(QIODevice::ReadOnly);
 }
 
 QByteArray WebRTC::readVariant(const rtc::message_variant &data)

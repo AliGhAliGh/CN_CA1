@@ -3,5 +3,6 @@
         <file>qml/Main.qml</file>
         <file>qml/RegisterPopup.qml</file>
         <file>qml/IncommingCallPopup.qml</file>
+        <file>qml/AudioSettings.qml</file>
     </qresource>
 </RCC>

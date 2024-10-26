@@ -14,9 +14,6 @@
 #include <QSlider>
 #include <QTimer>
 
-
-
-
 class AudioOut : public QObject{
     Q_OBJECT
 public:
@@ -30,8 +27,7 @@ public:
     void start();
     void stop();
 
-signals:
-
+Q_SIGNALS:
 
 private:
     bool mute = false;

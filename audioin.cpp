@@ -1,15 +1,14 @@
-
-#include "audioinput.h"
+#include "audioin.h"
 #include <QAudioDevice>
 #include <QAudioSource>
 #include <QDateTime>
 #include <QDebug>
 #include <QLabel>
+#include <QLineEdit>
+#include <QMediaDevices>
 #include <QPainter>
 #include <QVBoxLayout>
 #include <QtEndian>
-#include <QLineEdit>
-#include <QMediaDevices>
 #if QT_CONFIG(permissions)
 #include <QCoreApplication>
 #include <QPermission>
@@ -49,7 +48,6 @@ qreal AudioInfo::calculateLevel(const char *data, qint64 len) const
         for (int j = 0; j < m_format.channelCount(); ++j)
         {
             float value = m_format.normalizedSampleValue(ptr);
-
             maxValue = qMax(value, maxValue);
             ptr += channelBytes;
         }
@@ -225,7 +223,6 @@ void InputTest::toggleMode()
     if (m_pullMode)
     {
         m_modeButton->setText(tr("unmute mic"));
-        std::cout << "AAAAA" << std::endl;
         m_audioInput->start(m_audioInfo.data());
     }
     else
@@ -235,8 +232,7 @@ void InputTest::toggleMode()
         if (!io)
             return;
 
-        connect(io, &QIODevice::readyRead, [this, io]()
-                {
+        connect(io, &QIODevice::readyRead, [this, io]() {
             static const qint64 BufferSize = 4096;
             const qint64 len = qMin(m_audioInput->bytesAvailable(), BufferSize);
 
@@ -254,7 +250,8 @@ void InputTest::toggleMode()
                 }
                 //std::cout << "yes " << level << std::endl;
                 m_canvas->setLevel(level);
-            } });
+            }
+        });
     }
 
     m_pullMode = !m_pullMode;
@@ -339,7 +336,6 @@ void InputTest::chooseCallMode2()
 {
     if (call_mode == 0)
     {
-        std::cout << "set wait call" << std::endl;
         auto p = inputIp->text().toStdString();
         call_mode = 2;
         web2 = new WebRTCClientOferrer(p);

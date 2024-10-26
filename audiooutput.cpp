@@ -1,4 +1,4 @@
-#include "audiooutput.h".h"
+#include "audiooutput.h"
 
 #include <QAudioDevice>
 #include <QAudioSink>

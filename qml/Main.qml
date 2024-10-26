@@ -61,7 +61,8 @@ Window {
             text: "Call"
             Material.background: "green"
             Material.foreground: "white"
-            anchors.bottom: parent.bottom
+            anchors.bottom: settingsButton.top
+            anchors.bottomMargin: 10
             anchors.horizontalCenter: parent.horizontalCenter
             width: parent.width * 0.7
             height: 40
@@ -92,6 +93,22 @@ Window {
                 pushed = false
                 nameField.text = ""
             }
+        }
+
+        Button {
+            id: settingsButton
+            text: "Settings"
+            Material.background: "blue"
+            Material.foreground: "white"
+            width: parent.width * 0.7
+            height: 40
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.topMargin: 10
+
+            // onClicked: {
+            //     audioSettingsWindow.visible = true
+            // }
         }
     }
 
