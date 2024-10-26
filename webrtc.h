@@ -7,8 +7,8 @@
 #include <rtc/rtc.hpp>
 
 class SignalManager;
-// class AudioInput;
-// class AudioOutput;
+class AudioInput;
+class AudioOutput;
 
 class WebRTC : public QObject
 {
@@ -115,8 +115,8 @@ private:
     int m_payloadType = 111;
     rtc::Description::Audio m_audio;
     SignalManager *m_signaller;
-    // AudioInput *m_audioInput;
-    // AudioOutput *m_audioOutput;
+    AudioInput *m_audioInput;
+    AudioOutput *m_audioOutput;
     rtc::SSRC m_ssrc = 2;
     bool m_isOfferer = false;
     QString m_localId;

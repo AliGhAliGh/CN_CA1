@@ -1,42 +1,26 @@
-#ifndef AUDIOOUT_H
-#define AUDIOOUT_H
+#ifndef AUDIOOUTPUT_H
+#define AUDIOOUTPUT_H
 
-#include <QAudioSink>
-#include <QByteArray>
-#include <QComboBox>
-#include <QIODevice>
-#include <QLabel>
-#include <QMainWindow>
-#include <QMediaDevices>
 #include <QObject>
-#include <QPushButton>
-#include <QScopedPointer>
-#include <QSlider>
-#include <QTimer>
+#include <QAudioSink>
+#include <QAudioFormat>
+#include <QMutex>
 
-class AudioOut : public QObject{
+class AudioOutput : public QObject {
     Q_OBJECT
-public:
-    AudioOut();
-    ~AudioOut(){}
 
-    void initAudio(QAudioDevice&);
-    void set_level(int);
-    void change_device(int);
-    void play(QByteArray &buffer);
+public:
+    AudioOutput(const QAudioFormat &format, QObject *parent = nullptr);
+    ~AudioOutput();
+
     void start();
     void stop();
-
-Q_SIGNALS:
+    void addData(const unsigned char *data, int len);
 
 private:
-    bool mute = false;
-
-    QIODevice* io;
-    QAudioFormat m_format;
-
-    QScopedPointer<QAudioSink> m_audioOutput;
-    QMediaDevices *m_devices = nullptr;
+    QAudioSink *audioSink;
+    QAudioFormat audioFormat;
+    QMutex mutex;
 };
 
-#endif // AUDIOOUT_H
+#endif
