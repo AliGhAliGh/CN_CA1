@@ -11,12 +11,7 @@ class AudioInput : public QIODevice {
 
 public:
     AudioInput(WebRTC *webRtc, QObject *parent = nullptr);
-
-    ~AudioInput() {
-        if (opusEncoder) {
-            opus_encoder_destroy(opusEncoder);
-        }
-    }
+    ~AudioInput();
 
     bool open(OpenMode mode) override;
     void close() override;

@@ -2,7 +2,9 @@
 #include <QIODevice>
 #include <QtEndian>
 #include "audioinput.h"
+#include "audiooutput.h"
 #include "signalmanager.h"
+#include <winsock2.h>
 
 static_assert(true);
 
@@ -20,23 +22,12 @@ struct RtpHeader
 
 WebRTC::WebRTC(QObject *parent)
     : QObject{parent}
-    , m_audio("Audio")
     , m_signaller(new SignalManager(this))
-, m_audioInput(new AudioInput(this))
+    , m_audioInput(new AudioInput(this))
+    , m_audioOutput(new AudioOutput(this))
 {
     m_instanceCounter++;
     qDebug() << "WebRTC instance created. Total instances:" << m_instanceCounter;
-    connect(this, &WebRTC::gatheringComplited, [this](const QString &peerID) {
-        qDebug() << "Gathering completed!";
-        auto desc = m_peerConnections[peerID]->localDescription().value();
-        m_localDescription = descriptionToJson(desc);
-        Q_EMIT localDescriptionGenerated(peerID, m_localDescription);
-
-        if (isOfferer())
-            Q_EMIT this->offerIsReady(peerID, m_localDescription);
-        else
-            Q_EMIT this->answerIsReady(peerID, m_localDescription);
-    });
 }
 
 WebRTC::~WebRTC()
@@ -104,15 +95,6 @@ void WebRTC::init(const QString &id)
 void WebRTC::addPeer(const QString &peerId)
 {
     auto newPeer = std::make_shared<rtc::PeerConnection>(m_config);
-    newPeer->onLocalDescription([this, peerId](const rtc::Description &description) {
-        QString jsonDesc = descriptionToJson(description);
-        Q_EMIT localDescriptionGenerated(peerId, jsonDesc);
-    });
-    newPeer->onLocalCandidate([this, peerId](rtc::Candidate candidate) {
-        Q_EMIT localCandidateGenerated(peerId,
-                                       QString::fromStdString(candidate.candidate()),
-                                       QString::fromStdString(candidate.mid()));
-    });
     newPeer->onStateChange([this, peerId](rtc::PeerConnection::State state) {
         auto res = static_cast<int>(state);
         qDebug() << "PeerConnection state changed:" << res;
@@ -120,13 +102,22 @@ void WebRTC::addPeer(const QString &peerId)
             QMetaObject::invokeMethod(this, "connectionReady", Qt::QueuedConnection);
 
         if (res == 5)
-            endConnection();
+            QMetaObject::invokeMethod(this, "endConnection", Qt::QueuedConnection);
     });
     newPeer->onGatheringStateChange([this, peerId](rtc::PeerConnection::GatheringState state) {
         if (state == rtc::PeerConnection::GatheringState::Complete) {
             qDebug() << "ICE Gathering complete for peer:" << peerId;
-            Q_EMIT gatheringComplited(peerId);
+            auto desc = m_peerConnections[peerId]->localDescription().value();
+            auto localDescription = descriptionToJson(desc);
+            if (isOfferer())
+                Q_EMIT this->offerIsReady(peerId, localDescription);
+            else
+                Q_EMIT this->answerIsReady(peerId, localDescription);
         }
+    });
+    newPeer->onTrack([this, peerId](std::shared_ptr<rtc::Track> track) {
+        qDebug() << "New track received from peer:" << peerId;
+        setTrack(track, peerId);
     });
     m_peerConnections[peerId] = newPeer;
     qDebug() << "Peer added with id:" << peerId;
@@ -153,39 +144,13 @@ void WebRTC::addAudioTrack(const QString &peerId, const QString &trackName)
     if (m_peerConnections.contains(peerId)) {
         auto peerConnection = m_peerConnections[peerId];
         rtc::Description::Audio media(trackName.toStdString(),
-                                      rtc::Description::Direction::RecvOnly);
+                                      rtc::Description::Direction::SendRecv);
         auto track = peerConnection->addTrack(media);
-        m_peerTrack = track;
         qDebug() << "Audio track added to peer:" << peerId << "Track name:" << trackName;
-        track->onMessage([this, peerId](rtc::message_variant message) {
-            auto data = readVariant(message);
-            Q_EMIT incommingPacket(peerId, data, data.size());
-            qDebug() << "Audio track message received from peer:" << peerId
-                     << "of size:" << data.size();
-        });
-        track->onFrame([this](rtc::binary frame, rtc::FrameInfo info) {
-            qDebug() << "Audio track frame received of size:" << frame.size()
-                     << "Timestamp:" << info.timestamp;
-        });
+        setTrack(track, peerId);
     } else {
         qDebug() << "Peer connection not found for peerId:" << peerId;
     }
-}
-
-void WebRTC::sendTrack(const QString &peerId, const QByteArray &buffer)
-{
-    // if (m_peerTracks.contains(peerId)) {
-    //     auto track = m_peerTracks[peerId];
-    //     if (track && track->isOpen()) {
-    //         qDebug() << "Audio track data sent to peer:" << peerId;
-    //     } else {
-    //         qDebug() << "Track is not open or invalid for peer:" << peerId;
-    //     }
-    // }
-
-    // Create the RTP header and initialize an RtpHeader struct
-    // Create the RTP packet by appending the RTP header and the payload buffer
-    // Send the packet, catch and handle any errors that occur during sending
 }
 
 /**
@@ -193,6 +158,28 @@ void WebRTC::sendTrack(const QString &peerId, const QByteArray &buffer)
  * ================= public slots =====================
  * ====================================================
  */
+
+void WebRTC::endConnection()
+{
+    m_peerSdps.clear();
+    m_audioInput->close();
+    m_audioOutput->stop();
+    Q_EMIT endReceived();
+}
+
+void WebRTC::connectionReady()
+{
+    if (isOfferer())
+        m_audioInput->open(QIODevice::WriteOnly);
+    else
+        m_audioOutput->start();
+    // if (m_peerTrack) {
+    //     if (m_peerTrack->requestBitrate(m_bitRate))
+    //         qDebug() << "Success to request bitrate for track.";
+    //     else
+    //         qDebug() << "Failed to request bitrate for track.";
+    // }
+}
 
 void WebRTC::offerReceived(const QString &peerID, const QString &sdp)
 {
@@ -228,9 +215,29 @@ void WebRTC::setRemoteCandidate(const QString &peerID,
 
 void WebRTC::dataReady(const QByteArray &data)
 {
-    qDebug() << "send";
-    m_peerTrack->send(reinterpret_cast<const std::byte *>(data.data()),
-                      data.size() / sizeof(std::byte));
+    RtpHeader rtpHeader{};
+    rtpHeader.first = 0b10000000;
+    rtpHeader.marker = 0;
+    rtpHeader.payloadType = static_cast<uint8_t>(m_payloadType);
+    rtpHeader.sequenceNumber = htons(++m_sequenceNumber);
+    rtpHeader.timestamp = htonl(getCurrentTimestamp());
+    rtpHeader.ssrc = htonl(m_ssrc);
+    QByteArray packet(sizeof(RtpHeader), 0);
+    std::memcpy(packet.data(), &rtpHeader, sizeof(RtpHeader));
+    packet.append(data);
+
+    if (isOfferer()) {
+        auto packetSize = packet.size() / sizeof(std::byte);
+        if (!m_peerTrack || !m_peerTrack->isOpen())
+            qDebug() << "Track is not open or invalid.";
+        else {
+            try {
+                m_peerTrack->send(reinterpret_cast<const std::byte *>(packet.data()), packetSize);
+            } catch (const std::exception &e) {
+                qDebug() << "Failed to send packet:" << e.what();
+            }
+        }
+    }
 }
 
 /*
@@ -247,22 +254,28 @@ void WebRTC::acceptPeer(const rtc::Description &desc, const QString &peerId)
     qDebug() << "Remote SDP set for peer:" << peerId;
 }
 
-void WebRTC::endConnection()
+void WebRTC::setTrack(std::shared_ptr<rtc::Track> &track, const QString &peerId)
 {
-    m_peerSdps.clear();
-    Q_EMIT endReceived();
-}
-
-void WebRTC::connectionReady()
-{
-    m_audioInput->open(QIODevice::ReadOnly);
+    m_peerTrack = track;
+    track->onMessage([this, peerId](rtc::message_variant message) {
+        auto data = readVariant(message);
+        Q_EMIT incommingPacket(data, data.size());
+    });
+    track->onFrame([this](rtc::binary frame, rtc::FrameInfo info) {
+        qDebug() << "Audio track frame received of size:" << frame.size()
+                 << "Timestamp:" << info.timestamp;
+    });
 }
 
 QByteArray WebRTC::readVariant(const rtc::message_variant &data)
 {
-    if (std::holds_alternative<std::string>(data)) {
-        return QByteArray::fromStdString(std::get<std::string>(data));
+    if (std::holds_alternative<rtc::binary>(data)) {
+        const rtc::binary &binaryData = std::get<rtc::binary>(data);
+        QByteArray result(reinterpret_cast<const char *>(binaryData.data()), binaryData.size());
+        return result;
     }
+
+    qDebug() << "readVariant: Unsupported data type received.";
     return QByteArray();
 }
 

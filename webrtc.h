@@ -29,7 +29,6 @@ public:
     void generateOfferSDP(const QString &peerId);
     void generateAnswerSDP(const QString &peerId);
     void addAudioTrack(const QString &peerId, const QString &trackName);
-    void sendTrack(const QString &peerId, const QByteArray &buffer);
 
     bool isOfferer() const;
     void setIsOfferer(bool newIsOfferer);
@@ -48,7 +47,7 @@ public:
     void resetBitRate();
 
 Q_SIGNALS:
-    void incommingPacket(const QString &peerId, const QByteArray &data, qint64 len);
+    void incommingPacket(const QByteArray &data, qint64 len);
 
     void incommigCall(const QString &username);
 
@@ -64,15 +63,7 @@ Q_SIGNALS:
 
     void endReceived();
 
-    void localDescriptionGenerated(const QString &peerID, const QString &sdp);
-
-    void localCandidateGenerated(const QString &peerID,
-                                 const QString &candidate,
-                                 const QString &sdpMid);
-
     void isOffererChanged();
-
-    void gatheringComplited(const QString &peerID);
 
     void ssrcChanged();
 
@@ -93,9 +84,11 @@ public Q_SLOTS:
 
     void connectionReady();
 
+    void endConnection();
+
 private:
     void acceptPeer(const rtc::Description &desc, const QString &peerId);
-    void endConnection();
+    void setTrack(std::shared_ptr<rtc::Track> &track, const QString &peerId);
     QByteArray readVariant(const rtc::message_variant &data);
     QString descriptionToJson(const rtc::Description &description);
 
@@ -110,10 +103,8 @@ private:
 private:
     static inline uint16_t m_sequenceNumber = 0;
     static inline uint32_t m_instanceCounter = 0;
-    bool m_gatheringComplited = false;
     int m_bitRate = 48000;
     int m_payloadType = 111;
-    rtc::Description::Audio m_audio;
     SignalManager *m_signaller;
     AudioInput *m_audioInput;
     AudioOutput *m_audioOutput;
@@ -124,8 +115,6 @@ private:
     QMap<QString, QString> m_peerSdps;
     QMap<QString, std::shared_ptr<rtc::PeerConnection>> m_peerConnections;
     std::shared_ptr<rtc::Track> m_peerTrack;
-    QString m_localDescription;
-    QString m_remoteDescription;
 
     Q_PROPERTY(bool isOfferer READ isOfferer WRITE setIsOfferer RESET resetIsOfferer NOTIFY
                    isOffererChanged FINAL)
