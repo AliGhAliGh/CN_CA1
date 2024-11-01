@@ -44,8 +44,8 @@ bool AudioInput::open(OpenMode mode)
     format.setSampleFormat(QAudioFormat::Int16);
 
     if (!inputDevice.isFormatSupported(format)) {
-        qWarning() << "فرمت انتخابی پشتیبانی نمی‌شود. فرمت "
-                      "پیشنهادی:"
+        qWarning() << " selected format not supported"
+                      "ideal Format:"
                    << inputDevice.preferredFormat();
         format = inputDevice.preferredFormat();
     }
